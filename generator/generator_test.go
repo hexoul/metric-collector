@@ -11,8 +11,8 @@ func TestConsume(t *testing.T) {
 		t.Log("Consumed", param)
 	}, 2)
 	g.Start()
-	time.Sleep(30 * time.Second)
+	time.Sleep(150 * time.Second)
 
-	// Expected output: a, b, c, a, b, c, a, b, ...
-	// The order between a, b and c could be different.
+	// Expected output: a, b, c, a
+	// The output order and last item could be different.
 }
