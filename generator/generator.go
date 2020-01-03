@@ -1,3 +1,4 @@
+// Package generator provides a periodic request generation
 package generator
 
 import (
@@ -70,4 +71,9 @@ func (g *Generator) consume(consumer func(string)) {
 // Start the generator
 func (g *Generator) Start() {
 	g.cron.Start()
+}
+
+// Stop the generator
+func (g *Generator) Stop() {
+	g.cron.Stop()
 }
