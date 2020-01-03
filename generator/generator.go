@@ -6,54 +6,64 @@ import (
 
 // Generator keeps a cron to make requests periodically
 type Generator struct {
-	cron    *cron.Cron
-	metrics []string
-	provide chan string
-	rpm     uint
+	cron        *cron.Cron
+	metrics     []string
+	provide     chan string
+	lastProvide int
+	rpm         uint
 }
 
 // New returns a new request generator collect.
-// consume will be called with each metrics, thereby consume have need to get string as parameter.
-// rpm means Requests Per Minute referred by consume. It should be bigger than zero
-// and smaller than the length of metrics.
+// consumer will be called with each metrics, thereby consumer have need to get string as parameter.
+// rpm means Requests Per Minute referred by consumer. It should be bigger than zero.
 func New(
 	metrics []string,
-	consume func(string),
+	consumer func(string),
 	rpm uint,
 ) (*Generator, error) {
-	// verify parameters
-
 	c := cron.New()
-	provide := make(chan string, len(metrics))
+	p := make(chan string, 1000)
+	g := &Generator{
+		cron:        c,
+		metrics:     metrics,
+		provide:     p,
+		lastProvide: 0,
+		rpm:         rpm,
+	}
 
-	_, err := c.AddFunc("@every 20s", func() { feed(metrics, provide) })
+	_, err := c.AddFunc("@every 10s", func() { g.feed() })
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = c.AddFunc("@every 1m", func() {
-		for i := uint(0); i < rpm; i++ {
-			consume(<-provide)
-		}
-	})
+	_, err = c.AddFunc("@every 1m", func() { g.consume(consumer) })
 	if err != nil {
 		return nil, err
 	}
 
-	return &Generator{
-		cron:    c,
-		metrics: metrics,
-		rpm:     rpm,
-	}, nil
+	return g, nil
 }
 
-func feed(metrics []string, provide chan string) {
-	if len(provide) >= len(metrics) {
+func (g *Generator) feed() {
+	diff := cap(g.provide) - len(g.provide)
+	if diff == 0 {
 		return
 	}
 
-	for _, metric := range metrics {
-		go func(metric string) { provide <- metric }(metric)
+	iter := diff
+	if len(g.metrics) < iter {
+		iter = len(g.metrics)
+	}
+	for i := 0; i < iter; i++ {
+		idx := (i + g.lastProvide) % len(g.metrics)
+		go func(metric string) { g.provide <- metric }(g.metrics[idx])
+	}
+	g.lastProvide += iter
+}
+
+func (g *Generator) consume(consumer func(string)) {
+	for i := uint(0); i < g.rpm; i++ {
+		consumer(<-g.provide)
 	}
 }
 
