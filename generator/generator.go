@@ -1,11 +1,11 @@
-// Package generator provides a periodic request generation
+// Package generator provides a periodic request generation.
 package generator
 
 import (
 	"github.com/robfig/cron"
 )
 
-// Generator keeps a cron to make requests periodically
+// Generator keeps a cron to make requests periodically.
 type Generator struct {
 	cron        *cron.Cron
 	metrics     []string
@@ -14,7 +14,7 @@ type Generator struct {
 	rpm         uint
 }
 
-// New returns a new request generator collect.
+// New returns a request generator to collect metrics periodically.
 // consumer will be called with each metrics, thereby consumer have need to get string as parameter.
 // rpm means Requests Per Minute referred by consumer. It should be bigger than zero.
 func New(
